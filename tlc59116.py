@@ -18,10 +18,6 @@ chars = {' ': 0x00, '-': 0x40, '=': 0x48, '°': 0x63, '"': 0x22, "'": 0x20, '|':
 dots = {'.': 0x1, ',': 0x1, ':': 0x1, ';': 0x1}
 
 
-# pwm_list = [(6, 5), (7, 6), (10, 7), (15, 9), (20, 11), (30, 15),
-#            (40, 22), (50,  35), (60, 40), (100, 60), (200, 150), (256, 200)]
-
-
 def _text_norm(txt):
     is_char = False
     txt_sp = ''
@@ -51,7 +47,7 @@ def _text_norm(txt):
 
 def _char_to_bin(char):
     if char in chars:
-        bin_char = bin(chars[char])[2:]
+        bin_char = bin(chars[char])[2:] 
         for n in range(len(bin_char), 7):
             bin_char = '0' + bin_char  # Always max 7 bits
         bin_char_r = ''
@@ -72,6 +68,7 @@ class TLC59116:
         self.i2c_addr = i2c_addr
         self.i2c = I2C(0, sda=Pin(sda), scl=Pin(scl))  # ESP32 has two hardware I2C with identifiers 0 and 1.
         self.brightness = 200  # Default brightness (0-255)
+        self.dot_brightness_percent = 100
 
         self.i2c.writeto(self.i2c_addr,
                          bytearray([0x80,  # Writes from register 00
@@ -97,8 +94,13 @@ class TLC59116:
     def led_test(self):
         self._set_all(0xFF)
 
-    def set_segment(self, pin, brightness):
-        data = bytearray([0x01 + pin, brightness])  # Switch on selected (1 - 16)segment on entered brightness
+    def set_segment(self, pin, brightness=None):
+        if brightness is None:
+            brightness = self.brightness
+        if pin == 8 or pin == 16:  # dots
+            data = bytearray([0x01 + pin, int(round(brightness * self.dot_brightness_percent / 100))])
+        else:  # segments
+            data = bytearray([0x01 + pin, brightness])  # Switch on selected (1 - 16)segment on entered brightness
         self.i2c.writeto(self.i2c_addr, data)
 
     def led_write(self, txt):
@@ -112,9 +114,12 @@ class TLC59116:
             else:
                 bin_char += dot
                 dot = '0'
-                for n in bin_char:
-                    if n == '1':
-                        data.append(self.brightness)
+                for count, ch in enumerate(bin_char):
+                    if ch == '1':
+                        if count == 7:
+                            data.append(int(round(self.brightness * self.dot_brightness_percent/100)))
+                        else:
+                            data.append(self.brightness)
                     else:
                         data.append(0x00)
         self.i2c.writeto(self.i2c_addr, data)

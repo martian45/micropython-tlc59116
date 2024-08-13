@@ -12,6 +12,8 @@ disp = tlc59116.TLC59116(sda=21, scl=22, i2c_addr=0x60)
 # Set default brightness for all segments
 # Possible values are 0 - 255 (0x00 - 0xFF)
 disp.brightness = 200
+# Sets lower brightness of dots as percentage of disp.brightness
+disp.dot_brightness_percent = 80
 # Switch on all segments on default brightness
 disp.led_write('8.8.')
 ```
@@ -51,6 +53,8 @@ It is not possible to change hw address after start of device.
 |-------|---------|-----|
 | 1 1 0 | 1 0 1 1 | 1/0 | Software reset address
 | 1 1 0 | 1 0 0 0 | 1/0 | LED I2C all call address
+
+You can find addresses of devices on I2C using i2c_scan.py.
 
 
 
